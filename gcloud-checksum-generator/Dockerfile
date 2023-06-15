@@ -5,7 +5,7 @@ FROM python:3.9-slim
 WORKDIR /app
 
 # Copy the Python script and requirements.txt file
-COPY file_checksum.py requirements.txt ./
+COPY file_checksum.py compare_db.py requirements.txt ./
 
 # Install the required Python packages
 RUN pip install --no-cache-dir -r requirements.txt

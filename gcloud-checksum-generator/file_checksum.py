@@ -21,18 +21,18 @@ def create_database(database_file):
     conn = sqlite3.connect(database_file)
     cursor = conn.cursor()
     cursor.execute('''CREATE TABLE IF NOT EXISTS checksums
-                      (creation_time TEXT, checksum TEXT PRIMARY KEY, full_path TEXT, filename TEXT, size INTEGER)''')
+                  (creation_time TEXT, checksum TEXT PRIMARY KEY, full_path TEXT, filename TEXT, size BIGINT, modified_time TEXT, row_datetime TEXT)''')
     conn.commit()
     conn.close()
 
 # Function to insert a checksum record into the database
-def insert_checksum(database_file, checksum, full_path, filename, size):
+def insert_checksum(database_file, checksum, full_path, filename, size, creation_time, modified_time):
     conn = sqlite3.connect(database_file)
     cursor = conn.cursor()
-    creation_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     try:
-        cursor.execute("INSERT INTO checksums VALUES (?, ?, ?, ?, ?)",
-                       (creation_time, checksum, full_path, filename, size))
+        row_datetime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        cursor.execute("INSERT INTO checksums VALUES (?, ?, ?, ?, ?, ?, ?)",
+                       (creation_time, checksum, full_path, filename, size, modified_time, row_datetime))
         conn.commit()
     except sqlite3.IntegrityError:
         logging.warning(f"Checksum already exists for file '{full_path}'")
@@ -47,7 +47,9 @@ def scan_directory(directory, database_file, algorithm='md5'):
                 try:
                     size = os.path.getsize(file_path)
                     checksum = calculate_checksum(file_path, algorithm)
-                    insert_checksum(database_file, checksum, file_path, file, size)
+                    creation_time = os.path.getctime(file_path)
+                    modified_time = os.path.getmtime(file_path)
+                    insert_checksum(database_file, checksum, file_path, file, size, creation_time, modified_time)
                     logging.info(f"File '{file_path}' processed.")
                 except Exception as e:
                     logging.error(f"Error processing file '{file_path}': {str(e)}")
